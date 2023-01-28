@@ -17,26 +17,22 @@ function Settings.new(plugin,settingsButton,cursorButton)
 	local SecondaryColor = self.plugin:GetSetting("3DCurs_SecondaryColor")
 	local TertiaryColor = self.plugin:GetSetting("3DCurs_TertiaryColor")
 	local TextColor = self.plugin:GetSetting("3DCurs_TextColor")
-	self.PrimaryColor = PrimaryColor and Color3.fromHex(PrimaryColor) or Color3.fromRGB(10, 16, 30)
-	self.SecondaryColor = SecondaryColor and Color3.fromHex(SecondaryColor) or Color3.fromRGB(1, 3, 7)
-	self.TertiaryColor = TertiaryColor and Color3.fromHex(TertiaryColor) or Color3.fromRGB(64, 5, 72)
-	self.TextColor = TextColor and Color3.fromHex(TextColor) or Color3.fromRGB(255, 255, 255)
+	self.PrimaryColor = if PrimaryColor then Color3.fromHex(PrimaryColor) else Color3.fromRGB(17, 15, 24)
+	self.SecondaryColor = if SecondaryColor then Color3.fromHex(SecondaryColor) else Color3.fromRGB(1, 3, 7)
+	self.TertiaryColor = if TertiaryColor then Color3.fromHex(TertiaryColor) else Color3.fromRGB(130, 49, 205)
+	self.TextColor = if TextColor then Color3.fromHex(TextColor) else Color3.fromRGB(255, 255, 255)
 	self.Cursor = nil
-	if self.plugin:GetSetting("3DCurs_CursorSize") then
-		self.CursorSize = tonumber(self.plugin:GetSetting("3DCurs_CursorSize"))
-	else
-		self.CursorSize = 40
-	end
+	
+	self.CursorSize = tonumber(self.plugin:GetSetting("3DCurs_CursorSize") or 40) 
 	self.CursorImage = self.plugin:GetSetting("3DCurs_CursorImage") or 10127689049
 	self.ImageType = self.plugin:GetSetting("3DCurs_ImageType") or 0
 	self.SettingsConnections = {}
 	self.ColorPickerObject = nil
-	self.settingsWidget = nil
 	
 	local settingsWidgetInfo = DockWidgetPluginGuiInfo.new(
 		Enum.InitialDockState.Float,
 		false,
-		true, -- closes menu after plugin reload
+		false, -- closes menu after plugin reload
 		300,
 		228,
 		300,
@@ -44,7 +40,7 @@ function Settings.new(plugin,settingsButton,cursorButton)
 	)
 	self.settingsWidget = plugin:CreateDockWidgetPluginGui("3DCursorSettings",settingsWidgetInfo)
 	self.settingsWidget.Title = "Settings"
-	self.settingsUI = script.Parent.Parent.SettingsUI.SettingsFrame
+	self.settingsUI = script.Parent.Parent.SettingsUI.SettingsFrame:Clone()
 	self.settingsUI.Parent = self.settingsWidget
 	--local openSettings = false
 	
@@ -52,7 +48,7 @@ function Settings.new(plugin,settingsButton,cursorButton)
 	local colorPickerWidgetInfo = DockWidgetPluginGuiInfo.new(
 		Enum.InitialDockState.Float,
 		false,
-		true, -- closes menu after plugin reload
+		false, -- closes menu after plugin reload
 		462,
 		266,
 		462,
@@ -82,36 +78,35 @@ function Settings.new(plugin,settingsButton,cursorButton)
 			
 			
 			local function ColorButton(ColorName)
+				
 				canUseButtons = false
-				colorPickerWidget.Enabled = true
 				colorCache = {ColorName,self[ColorName]}
 				self.ColorPickerObject = ColorPicker.new(plugin,colorPickerWidget,self[ColorName])
 				
-				local changeEvent = nil
-				local saveEvent = nil
-				local cancelEvent = nil
-				
-				changeEvent = self.ColorPickerObject.ColorChangeEvent.Event:Connect(function(currentColor : Color3)
+				table.insert(self.SettingsConnections,self.ColorPickerObject.ColorChangeEvent.Event:Connect(function(currentColor : Color3)
 					self[ColorName] = currentColor
 					self:SetColors()
-				end)
-				saveEvent = self.ColorPickerObject.ColorSaveEvent.Event:Connect(function(currentColor : Color3)
+				end))
+				
+				table.insert(self.SettingsConnections,self.ColorPickerObject.ColorSaveEvent.Event:Connect(function(currentColor : Color3)
 					self[ColorName] = currentColor
 					self.plugin:SetSetting("3DCurs_"..ColorName,currentColor:ToHex())
 					self.ColorPickerObject:CloseConnections()
 					self.ColorPickerObject = nil
 					canUseButtons = true
 					colorCache = nil
-				end)
+				end))
 				
-				cancelEvent = self.ColorPickerObject.ColorCancelEvent.Event:Connect(function()
+				table.insert(self.SettingsConnections,self.ColorPickerObject.ColorCancelEvent.Event:Connect(function()
 					self[ColorName] = colorCache[2]
 					self.ColorPickerObject:CloseConnections()
 					self.ColorPickerObject = nil
 					self:SetColors()
 					canUseButtons = true
 					colorCache = nil
-				end)
+				end))
+				
+				colorPickerWidget.Enabled = true
 			end
 			table.insert(self.SettingsConnections,ColorSection.TextColor.BackLabel.TextColorButton.MouseButton1Click:Connect(function()
 				if canUseButtons then
@@ -208,9 +203,9 @@ function Settings.new(plugin,settingsButton,cursorButton)
 			
 			table.insert(self.SettingsConnections,SaveOperations.Reset.ResetToDefault.MouseButton1Click:Connect(function()
 				if not self.ColorPickerObject then -- this could cause people to think that they have an issue not resetting if the color picker still exists, however this will stay.
-					self.PrimaryColor = Color3.fromRGB(10, 16, 30)
+					self.PrimaryColor = Color3.fromRGB(17, 15, 24)
 					self.SecondaryColor = Color3.fromRGB(1, 3, 7)
-					self.TertiaryColor = Color3.fromRGB(64, 5, 72)
+					self.TertiaryColor = Color3.fromRGB(130, 49, 205)
 					self.TextColor = Color3.fromRGB(255, 255, 255)
 					self.CursorSize = 40
 					self.CursorImage = 10127689049
@@ -275,17 +270,7 @@ function Settings.new(plugin,settingsButton,cursorButton)
 			self:SetCursor()
 			self:CloseConnections()
 		end
-		--openSettings = settingsWidget.Enabled
 	end)
-	
-	--settingsWidget:BindToClose(function()
-	--	print("hey")
-	--	settingsButton:SetActive(false)
-	--	settingsWidget.Enabled = false
-	--	openSettings = false
-	--	print(settingsButton.Name)
-	--	--settingsButton:SetActive(false)
-	--end)
 	
 	self:SetCursor()
 	self:SetColors()
@@ -311,10 +296,15 @@ function Settings:SetCursor()
 	
 end
 
-
 function Settings:SetColors()
 	
 	local ContextMenu = script.Parent.Parent.ContextMenu.Frame
+	local SelToCursor = ContextMenu.SelToCursor.SelToCursor
+	local CursorToSel = ContextMenu.CursorToSel.CursorToSel
+	local CursorToOrigin = ContextMenu.CursorToOrigin.Frame.CursorToOrigin
+	local SelToCursorOff = ContextMenu.SelToCursorOff.Frame.SelToCursorOff
+	local PivotToCursor = ContextMenu.PivotToCursor.Frame.PivotToCursor
+	local SelToActive = ContextMenu.SelToActive.Frame.SelToActive
 	
 	local PrimaryColor = {
 		
@@ -326,12 +316,12 @@ function Settings:SetColors()
 		
 		-- ContextMenu
 		
-		ContextMenu.CursorToOrigin,
-		ContextMenu.CursorToSel,
-		ContextMenu.SelToCursor,
-		ContextMenu.SelToCursorOff,
-		ContextMenu.CenterStroke
-		
+		SelToCursor,
+		CursorToSel,
+		CursorToOrigin,
+		SelToCursorOff,
+		PivotToCursor,
+		SelToActive,
 	}
 	
 	local SecondaryColor = {
@@ -363,12 +353,14 @@ function Settings:SetColors()
 		
 		-- ContextMenu
 		
-		ContextMenu.Frame,
-		ContextMenu.CursorToOrigin,
-		ContextMenu.CursorToSel,
-		ContextMenu.SelToCursor,
-		ContextMenu.SelToCursorOff,
+		SelToCursor,
+		CursorToSel,
+		CursorToOrigin,
+		SelToCursorOff,
+		PivotToCursor,
+		SelToActive,
 	}
+	
 	
 	local TextColor = {
 		
@@ -386,54 +378,65 @@ function Settings:SetColors()
 		
 		--ContextMenu
 		
-		ContextMenu.CursorToOrigin.ImageLabel,
-		ContextMenu.CursorToSel.ImageLabel,
-		ContextMenu.SelToCursor.ImageLabel,
-		ContextMenu.SelToCursorOff.ImageLabel,
+		SelToCursor.ImageLabel,
+		CursorToSel.ImageLabel,
+		CursorToOrigin.ImageLabel,
+		SelToCursorOff.ImageLabel,
+		PivotToCursor.ImageLabel,
+		SelToActive.ImageLabel,
+		
+		SelToCursor.ImageLabel.ItemText,
+		CursorToSel.ImageLabel.ItemText,
+		CursorToOrigin.ImageLabel.ItemText,
+		SelToCursorOff.ImageLabel.ItemText,
+		PivotToCursor.ImageLabel.ItemText,
+		SelToActive.ImageLabel.ItemText,
+
 		ContextMenu.ContextArc,
-		ContextMenu.CursorToOrigin.ImageLabel.ItemText,
-		ContextMenu.CursorToSel.ImageLabel.ItemText,
-		ContextMenu.SelToCursor.ImageLabel.ItemText,
-		ContextMenu.SelToCursorOff.ImageLabel.ItemText,
 	}
+	
 	if self.ColorPickerObject then
 		local colorPickerFrame = self.ColorPickerObject.ColorPicker
+		local options = colorPickerFrame.Options
+		local hsv = options.HSV
+		local hex = options.Hex
+		local rgb = options.RGB
 		table.insert(PrimaryColor,colorPickerFrame)
-		table.insert(PrimaryColor,colorPickerFrame.Options.HSV)
-		table.insert(PrimaryColor,colorPickerFrame.Options.Hex)
-		table.insert(PrimaryColor,colorPickerFrame.Options.RGB)
+		table.insert(PrimaryColor,hsv)
+		table.insert(PrimaryColor,hex)
+		table.insert(PrimaryColor,rgb)
 		table.insert(PrimaryColor,colorPickerFrame.SaveFrame)
 		
-		table.insert(SecondaryColor,colorPickerFrame.Options)
-		table.insert(SecondaryColor,colorPickerFrame.Options.HSV.HueValue)
-		table.insert(SecondaryColor,colorPickerFrame.Options.HSV.BrightnessValue)
-		table.insert(SecondaryColor,colorPickerFrame.Options.HSV.SaturationValue)
-		table.insert(SecondaryColor,colorPickerFrame.Options.Hex.Value)
-		table.insert(SecondaryColor,colorPickerFrame.Options.RGB.Value)
+		table.insert(SecondaryColor,options)
+		table.insert(SecondaryColor,hsv.HueValue)
+		table.insert(SecondaryColor,hsv.BrightnessValue)
+		table.insert(SecondaryColor,hsv.SaturationValue)
+		table.insert(SecondaryColor,hex.Value)
+		table.insert(SecondaryColor,rgb.Value)
 		
-		table.insert(TertiaryColor,colorPickerFrame.Options)
-		table.insert(TertiaryColor,colorPickerFrame.Options.HSV.HueValue)
-		table.insert(TertiaryColor,colorPickerFrame.Options.HSV.BrightnessValue)
-		table.insert(TertiaryColor,colorPickerFrame.Options.HSV.SaturationValue)
-		table.insert(TertiaryColor,colorPickerFrame.Options.Hex.Value)
-		table.insert(TertiaryColor,colorPickerFrame.Options.RGB.Value)
-		table.insert(TertiaryColor,colorPickerFrame.Options.HSV)
-		table.insert(TertiaryColor,colorPickerFrame.Options.Hex)
-		table.insert(TertiaryColor,colorPickerFrame.Options.RGB)
+		table.insert(TertiaryColor,options)
+		table.insert(TertiaryColor,hsv.HueValue)
+		table.insert(TertiaryColor,hsv.BrightnessValue)
+		table.insert(TertiaryColor,hsv.SaturationValue)
+		table.insert(TertiaryColor,hex.Value)
+		table.insert(TertiaryColor,rgb.Value)
+		table.insert(TertiaryColor,hsv)
+		table.insert(TertiaryColor,hex)
+		table.insert(TertiaryColor,rgb)
 		table.insert(TertiaryColor,colorPickerFrame.SaveFrame)
 		table.insert(TertiaryColor,colorPickerFrame)
 		
-		table.insert(TextColor,colorPickerFrame.Options.HSV.HueValue)
-		table.insert(TextColor,colorPickerFrame.Options.HSV.BrightnessValue)
-		table.insert(TextColor,colorPickerFrame.Options.HSV.SaturationValue)
-		table.insert(TextColor,colorPickerFrame.Options.HSV.Hue)
-		table.insert(TextColor,colorPickerFrame.Options.HSV.Sat)
-		table.insert(TextColor,colorPickerFrame.Options.HSV.Val)
-		table.insert(TextColor,colorPickerFrame.Options.HSV.HSV)
-		table.insert(TextColor,colorPickerFrame.Options.Hex.Hex)
-		table.insert(TextColor,colorPickerFrame.Options.Hex.Value)
-		table.insert(TextColor,colorPickerFrame.Options.RGB.RGB)
-		table.insert(TextColor,colorPickerFrame.Options.RGB.Value)
+		table.insert(TextColor,hsv.HueValue)
+		table.insert(TextColor,hsv.BrightnessValue)
+		table.insert(TextColor,hsv.SaturationValue)
+		table.insert(TextColor,hsv.Hue)
+		table.insert(TextColor,hsv.Sat)
+		table.insert(TextColor,hsv.Val)
+		table.insert(TextColor,hsv.HSV)
+		table.insert(TextColor,hex.Hex)
+		table.insert(TextColor,hex.Value)
+		table.insert(TextColor,rgb.RGB)
+		table.insert(TextColor,rgb.Value)
 	end
 	
 	
