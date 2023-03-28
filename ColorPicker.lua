@@ -31,8 +31,6 @@ function ColorPicker.new(plugin : Plugin, ColorPickerWidget : DockWidgetPluginGu
 	self.ColorSaveEvent = Instance.new("BindableEvent")
 	self.ColorCancelEvent = Instance.new("BindableEvent")
 	
-	self:UpdateColor()
-	
 	self:CreateConnections()
 	
 	
@@ -67,8 +65,9 @@ function ColorPicker:UpdateColor()
 	self.Options.HSV.HueValue.Text = math.round(self.degreesAroundCenter)
 	self.Options.HSV.SaturationValue.Text = math.round(self.Saturation*255)
 	self.Options.HSV.BrightnessValue.Text = math.round(self.Brightness*255)
-	self.Options.Hex.Value.Text = "#" .. currentColor:ToHex():upper()
-	self.Options.RGB.Value.Text = math.round(currentColor.R*255) .. ", " .. math.round(currentColor.G*255) .. ", " .. math.round(currentColor.B*255)
+	self.Options.Hex.Value.Text = `#{currentColor:ToHex():upper()}`
+	self.Options.RGB.Value.Text = `{math.round(currentColor.R*255)}, {math.floor(currentColor.G*255)}, {math.floor(currentColor.B*255)}`
+
 	self.ColorChangeEvent:Fire(currentColor)
 end
 
@@ -76,12 +75,12 @@ function ColorPicker:CreateConnections()
 	local debounceOne = true
 	local debounceTwo = true
 	
-	local function debounceOneFunc(input,sucess)
+	local function debounceOneFunc(input : InputObject,sucess)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			debounceOne = not debounceOne
 		end
 	end
-	local function debounceTwoFunc(input,sucess)
+	local function debounceTwoFunc(input : InputObject,sucess)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			debounceTwo = not debounceTwo
 		end
@@ -131,17 +130,17 @@ function ColorPicker:CreateConnections()
 	end))
 
 	local function brightSat(typeOfVal : "Brightness" | "Saturation")
-		local currentText = self.Options.HSV[`${typeOfVal}Value`].Text
+		local currentText = self.Options.HSV[`{typeOfVal}Value`].Text
 
-		local match = currentText:match("(%d%d?%d?)")
+		local match = currentText:match("^(%d%d?%d?)$")
 
-		if match and tonumber(match) <= 255 then
+		if match and tonumber(match) <= 255 and tonumber(match) >= 0  then
 
 			self[typeOfVal] = match / 255
 			self:UpdateColor()
 
 		else
-			self.Options.HSV[`${typeOfVal}Value`].Value.Text = math.round(self[typeOfVal]*255)
+			self.Options.HSV[`{typeOfVal}Value`].Text = math.round(self[typeOfVal]*255)
 		end
 	end
 	
@@ -153,9 +152,9 @@ function ColorPicker:CreateConnections()
 		
 		local currentText = self.Options.HSV.HueValue.Text
 		
-		local match = currentText:match("(%d%d?%d?)")
+		local match = currentText:match("^(%d%d?%d?)$")
 		
-		if match and tonumber(match) <= 360 then
+		if match and tonumber(match) <= 360 and tonumber(match) >= 0 then
 			
 			self.degreesAroundCenter = match
 			self:UpdateColor()
@@ -169,10 +168,10 @@ function ColorPicker:CreateConnections()
 	table.insert(self.Connections,self.Options.Hex.Value.FocusLost:Connect(function()
 		
 		local currentText = self.Options.Hex.Value.Text:upper()
-		local r,g,b = currentText:match("^#?(%x%x)(%x%x)(%x%x)")
+		local r,g,b = currentText:match("^#?(%x%x)(%x%x)(%x%x)$")
 		
 		if not r or not g or not b then
-			r,g,b = currentText:match("^#?(%x)(%x)(%x)")
+			r,g,b = currentText:match("^#?(%x)(%x)(%x)$")
 			if not r or not g or not b then
 				local currentColor = Color3.fromHSV(self.degreesAroundCenter/360,self.Saturation,self.Brightness)
 				self.Options.Hex.Value.Text = "#" .. currentColor:ToHex():upper()
@@ -192,13 +191,13 @@ function ColorPicker:CreateConnections()
 	table.insert(self.Connections,self.Options.RGB.Value.FocusLost:Connect(function()
 		
 		local currentText = self.Options.RGB.Value.Text
-		local r,g,b = currentText:match("^(%d%d?%d?),? ?(%d%d?%d?),? ?(%d%d?%d?)")
+		local r,g,b = currentText:match("^(%d%d?%d?),? ?(%d%d?%d?),? ?(%d%d?%d?)$")
 		
 		local color3FromHex
-		if not r or not g or not b or tonumber(r) > 255 or tonumber(g) > 255 or tonumber(b) > 255 then
+		if not r or not g or not b or tonumber(r) > 255 or tonumber(g) > 255 or tonumber(b) > 255 or tonumber(r) < 0 or tonumber(g) < 0 or tonumber(b) < 0 then
 			
 			local currentColor = Color3.fromHSV(self.degreesAroundCenter/360,self.Saturation,self.Brightness)
-			self.Options.RGB.Value.Text = math.round(currentColor.R*255) .. ", " .. math.floor(currentColor.G*255) .. ", " .. math.floor(currentColor.B*255)
+			self.Options.RGB.Value.Text = `{math.round(currentColor.R*255)}, {math.floor(currentColor.G*255)}, {math.floor(currentColor.B*255)}`
 			return
 		end
 		
