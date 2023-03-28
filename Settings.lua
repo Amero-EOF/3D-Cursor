@@ -78,58 +78,53 @@ function Settings.new(plugin,settingsButton,cursorButton)
 			
 			
 			local function ColorButton(ColorName)
-				
-				canUseButtons = false
-				colorCache = {ColorName,self[ColorName]}
-				self.ColorPickerObject = ColorPicker.new(plugin,colorPickerWidget,self[ColorName])
-				
-				table.insert(self.SettingsConnections,self.ColorPickerObject.ColorChangeEvent.Event:Connect(function(currentColor : Color3)
-					self[ColorName] = currentColor
-					self:SetColors()
-				end))
-				
-				table.insert(self.SettingsConnections,self.ColorPickerObject.ColorSaveEvent.Event:Connect(function(currentColor : Color3)
-					self[ColorName] = currentColor
-					self.plugin:SetSetting("3DCurs_"..ColorName,currentColor:ToHex())
-					self.ColorPickerObject:CloseConnections()
-					self.ColorPickerObject = nil
-					canUseButtons = true
-					colorCache = nil
-				end))
-				
-				table.insert(self.SettingsConnections,self.ColorPickerObject.ColorCancelEvent.Event:Connect(function()
-					self[ColorName] = colorCache[2]
-					self.ColorPickerObject:CloseConnections()
-					self.ColorPickerObject = nil
-					self:SetColors()
-					canUseButtons = true
-					colorCache = nil
-				end))
-				
-				colorPickerWidget.Enabled = true
+				if canUseButtons then
+					canUseButtons = false
+					colorCache = {ColorName,self[ColorName]}
+					self.ColorPickerObject = ColorPicker.new(plugin,colorPickerWidget,self[ColorName])
+					
+					table.insert(self.SettingsConnections,self.ColorPickerObject.ColorChangeEvent.Event:Connect(function(currentColor : Color3)
+						self[ColorName] = currentColor
+						self:SetColors()
+					end))
+					
+					table.insert(self.SettingsConnections,self.ColorPickerObject.ColorSaveEvent.Event:Connect(function(currentColor : Color3)
+						self[ColorName] = currentColor
+						self.plugin:SetSetting("3DCurs_"..ColorName,currentColor:ToHex())
+						self.ColorPickerObject:CloseConnections()
+						self.ColorPickerObject = nil
+						canUseButtons = true
+						colorCache = nil
+					end))
+					
+					table.insert(self.SettingsConnections,self.ColorPickerObject.ColorCancelEvent.Event:Connect(function()
+						self[ColorName] = colorCache[2]
+						self.ColorPickerObject:CloseConnections()
+						self.ColorPickerObject = nil
+						self:SetColors()
+						canUseButtons = true
+						colorCache = nil
+					end))
+					self.ColorPickerObject:UpdateColor()
+					colorPickerWidget.Enabled = true
+				end
 			end
 			table.insert(self.SettingsConnections,ColorSection.TextColor.BackLabel.TextColorButton.MouseButton1Click:Connect(function()
-				if canUseButtons then
-					ColorButton("TextColor")
-				end
+
+				ColorButton("TextColor")
+
 			end))
 			
 			table.insert(self.SettingsConnections,ColorSection.PrimaryColor.PrimaryColorButton.MouseButton1Click:Connect(function()
-				if canUseButtons then
-					ColorButton("PrimaryColor")	
-				end	
+				ColorButton("PrimaryColor")
 			end))
 			
 			table.insert(self.SettingsConnections,ColorSection.SecondaryColor.BackLabel.SecondaryColorButton.MouseButton1Click:Connect(function()
-				if canUseButtons then
-					ColorButton("SecondaryColor")
-				end				
+				ColorButton("SecondaryColor")
 			end))
 			
 			table.insert(self.SettingsConnections,ColorSection.TertiaryColor.TertiaryColorButton.MouseButton1Click:Connect(function()
-				if canUseButtons then
-					ColorButton("TertiaryColor")
-				end	
+				ColorButton("TertiaryColor")
 			end))
 			
 			--[[
@@ -147,7 +142,7 @@ function Settings.new(plugin,settingsButton,cursorButton)
 			table.insert(self.SettingsConnections,cursorSizeTextBox.FocusLost:Connect(function()
 				local check = tonumber(cursorSizeTextBox.Text)
 				
-				if check then
+				if check and check > 0 then
 					cursorSizeCache = self.CursorSize
 					self.CursorSize = math.floor(check)
 					self:SetCursor()
@@ -299,23 +294,25 @@ end
 function Settings:SetColors()
 	
 	local ContextMenu = script.Parent.Parent.ContextMenu.Frame
-	local SelToCursor = ContextMenu.SelToCursor.SelToCursor
-	local CursorToSel = ContextMenu.CursorToSel.CursorToSel
+	local SelToCursor = ContextMenu.SelToCursor.Frame.SelToCursor
+	local CursorToSel = ContextMenu.CursorToSel.Frame.CursorToSel
 	local CursorToOrigin = ContextMenu.CursorToOrigin.Frame.CursorToOrigin
 	local SelToCursorOff = ContextMenu.SelToCursorOff.Frame.SelToCursorOff
 	local PivotToCursor = ContextMenu.PivotToCursor.Frame.PivotToCursor
 	local SelToActive = ContextMenu.SelToActive.Frame.SelToActive
+	local ColorSection = self.settingsUI.ColorSection
+	local CursorSection = self.settingsUI.CursorSection
 	
 	local PrimaryColor = {
 		
 		-- Settings
 		
-		self.settingsUI.ColorSection.PrimaryColor.PrimaryColorButton,
-		self.settingsUI.CursorSection.CursorSize.BackLabel.TextBox,
+		ColorSection.PrimaryColor.PrimaryColorButton,
+		CursorSection.CursorSize.BackLabel.TextBox,
 		self.settingsUI,
 		
 		-- ContextMenu
-		
+		ContextMenu.CenterStroke,
 		SelToCursor,
 		CursorToSel,
 		CursorToOrigin,
@@ -328,14 +325,14 @@ function Settings:SetColors()
 		
 		-- Settings
 		
-		self.settingsUI.ColorSection.SecondaryColor.BackLabel.SecondaryColorButton,
-		self.settingsUI.ColorSection.PrimaryColor.BackLabel,
-		self.settingsUI.ColorSection.TertiaryColor.BackLabel,
-		self.settingsUI.ColorSection.SecondaryColor.BackLabel,
-		self.settingsUI.ColorSection.TextColor.BackLabel,
-		self.settingsUI.CursorSection.CursorImage.TextBox,
-		self.settingsUI.CursorSection.CursorImage.BackLabel,
-		self.settingsUI.CursorSection.CursorSize.BackLabel,
+		ColorSection.SecondaryColor.BackLabel.SecondaryColorButton,
+		ColorSection.PrimaryColor.BackLabel,
+		ColorSection.TertiaryColor.BackLabel,
+		ColorSection.SecondaryColor.BackLabel,
+		ColorSection.TextColor.BackLabel,
+		CursorSection.CursorImage.TextBox,
+		CursorSection.CursorImage.BackLabel,
+		CursorSection.CursorSize.BackLabel,
 		self.settingsUI.SaveOperations.Save,		
 		
 	}
@@ -344,12 +341,13 @@ function Settings:SetColors()
 		
 		-- Settings
 		
-		self.settingsUI.ColorSection.TertiaryColor.TertiaryColorButton,
+		ColorSection.TertiaryColor.TertiaryColorButton,
 		self.settingsUI,
-		self.settingsUI.CursorSection.CursorImage.TextBox,
-		self.settingsUI.CursorSection.CursorSize.BackLabel.TextBox,
+		CursorSection.CursorImage.TextBox,
+		CursorSection.CursorSize.BackLabel.TextBox,
 		self.settingsUI.SaveOperations.Reset,
 		self.settingsUI.SaveOperations.Save,
+		ContextMenu.centerinset,
 		
 		-- ContextMenu
 		
@@ -366,15 +364,15 @@ function Settings:SetColors()
 		
 		-- Settings
 		
-		self.settingsUI.CursorSection.CursorSize.TextLabel,
-		self.settingsUI.CursorSection.CursorSize.BackLabel.TextBox,
-		self.settingsUI.CursorSection.CursorImage.TextBox,
-		self.settingsUI.CursorSection.CursorImage.BackLabel.TextLabel,
-		self.settingsUI.ColorSection.PrimaryColor.BackLabel.TextLabel,
-		self.settingsUI.ColorSection.SecondaryColor.TextLabel,
-		self.settingsUI.ColorSection.TertiaryColor.BackLabel.TextLabel,
-		self.settingsUI.ColorSection.TextColor.TextLabel,
-		self.settingsUI.ColorSection.TextColor.BackLabel.TextColorButton,
+		CursorSection.CursorSize.TextLabel,
+		CursorSection.CursorSize.BackLabel.TextBox,
+		CursorSection.CursorImage.TextBox,
+		CursorSection.CursorImage.BackLabel.TextLabel,
+		ColorSection.PrimaryColor.BackLabel.TextLabel,
+		ColorSection.SecondaryColor.TextLabel,
+		ColorSection.TertiaryColor.BackLabel.TextLabel,
+		ColorSection.TextColor.TextLabel,
+		ColorSection.TextColor.BackLabel.TextColorButton,
 		
 		--ContextMenu
 		
@@ -394,7 +392,7 @@ function Settings:SetColors()
 
 		ContextMenu.ContextArc,
 	}
-	
+
 	if self.ColorPickerObject then
 		local colorPickerFrame = self.ColorPickerObject.ColorPicker
 		local options = colorPickerFrame.Options
@@ -440,7 +438,7 @@ function Settings:SetColors()
 	end
 	
 	
-	for i,v in pairs(PrimaryColor) do
+	for i,v in PrimaryColor do
 		if v.Name == "CenterStroke" then
 			v.UIStroke.Color = self.PrimaryColor	
 		else
@@ -448,11 +446,11 @@ function Settings:SetColors()
 		end	
 	end
 	
-	for i,v in pairs(SecondaryColor) do
+	for i,v in SecondaryColor do
 		v.BackgroundColor3 = self.SecondaryColor
 	end
 	
-	for i,v in pairs(TertiaryColor) do
+	for i,v in TertiaryColor do
 		if v:IsA("TextButton") then
 			v.BackgroundColor3 = self.TertiaryColor
 		else
@@ -465,7 +463,7 @@ function Settings:SetColors()
 		end
 	end
 	
-	for i,v in pairs(TextColor) do
+	for i,v in TextColor do
 		if v:IsA("ImageLabel") then
 			v.ImageColor3 = self.TextColor
 		elseif v:IsA("TextButton") then
@@ -482,7 +480,7 @@ end
 
 
 function Settings:CloseConnections()
-	for i,v in pairs(self.SettingsConnections) do
+	for i,v in self.SettingsConnections do
 		v:Disconnect()
 	end
 end
