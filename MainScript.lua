@@ -5,20 +5,28 @@
 --TODO: Issue with focused text labels inside the color picker if you drag, it will activate the rotation of the color circle when dragged inside
 -- the frame.
 
-local currentVersion = "1.1.2"
+local currentVersion = "1.1.4"
 local CoreGui = game:GetService("CoreGui")
-local toolbar : PluginToolbar = plugin:CreateToolbar("Crushmero Suite")
+
+
+--local CrushmeroToolbar : PluginToolbar = game:GetService("CoreGui"):WaitForChild("PluginToolbars"):FindFirstChild("CrushmeroToolbar") 
+
+local HttpService = game:GetService("HttpService")
 local ContextActionService = game:GetService("ContextActionService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local SelectionService = game:GetService("Selection")
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local TweenService = game:GetService("TweenService")
+local StudioService = game:GetService("StudioService")
 local Settings = require(script.Settings)
-local cursorButton : PluginToolbarButton = (toolbar:CreateButton("3dCursor","","rbxassetid://11492805727","3dCursor") :: PluginToolbarButton)
-local settingsButton : PluginToolbarButton = (toolbar:CreateButton("3dCursorSettings","","rbxassetid://10316639852","Settings") :: PluginToolbarButton)
 
 local plugin : Plugin = plugin
+
+local CrushmeroToolbar : PluginToolbar = plugin:CreateToolbar("CrushmeroToolbar")
+
+local cursorButton = CrushmeroToolbar:CreateButton("3dCursor-7019951","","rbxassetid://11492805727","3dCursor")
+local settingsButton = CrushmeroToolbar:CreateButton("3dCursorSettings-7019951","","rbxassetid://10316639852","Settings")
 
 local mouse = plugin:GetMouse()
 
@@ -269,11 +277,11 @@ local function ResetButtons()
 		end
 	end
 
-	for i,v in contextButtons :: {[string]:ContextButton} do
-		if v.object then
-			ContextActionService:UnbindAction(v.object.Name)
-		end
-	end
+	--for i,v in contextButtons :: {[string]:ContextButton} do
+	--	if v.object then
+	--		ContextActionService:UnbindAction(v.object.Name)
+	--	end
+	--end
 	if newContextMenu then
 		newContextMenu:Destroy()
 	end
@@ -350,11 +358,11 @@ function sHandler(_, inputState : Enum.UserInputState?, _ : InputObject?, bypass
 
 			object.Size = UDim2.fromScale(0,0)
 
-			ContextActionService:BindAction(object.Name,function()
-				currentContextButton = i
-				ContextActionService:UnbindAction("3DCursorContextMenuExtra")
-				ResetButtons()
-			end, false, table.unpack(v.buttons))
+			--ContextActionService:BindAction(object.Name,function()
+			--	currentContextButton = i
+			--	ContextActionService:UnbindAction("3DCursorContextMenuExtra")
+			--	ResetButtons()
+			--end, false, table.unpack(v.buttons))
 		end
 
 
@@ -489,9 +497,11 @@ cursorButton.Click:Connect(function()
 		cursorButton:SetActive(open)
 		return
 	end
+	local playerID = StudioService:GetUserId()
 	-- Hotfix for persisting cursor info.
 	for i,v in workspace.Terrain:GetChildren() do
-		if v.Name == "CursorAttachment" or v.Name == "3DCursorFolder" then
+		if (v.Name == "CursorAttachment" and v.Owner.Value == playerID) or 
+		   (v.Name == "3DCursorFolder"   and v.Owner.Value == playerID) then
 			v:Destroy()
 		end
 	end
@@ -508,7 +518,10 @@ cursorButton.Click:Connect(function()
 	cursorFolder.Archivable = false
 	cursorFolder.Parent = game.Workspace.Terrain
 	
-	
+	local cursorOwner = Instance.new("StringValue")
+	cursorOwner.Value = playerID
+	cursorOwner.Parent = cursorFolder
+	cursorOwner.Name = "Owner"
 	cursorPosition = Instance.new("Vector3Value")
 	
 	cursorPosition.Name = "CursorPositionValue"
@@ -528,6 +541,8 @@ cursorButton.Click:Connect(function()
 	cursorAttachment.Name = "CursorAttachment"
 	cursorAttachment.Archivable = false
 	cursorAttachment.Parent = workspace.Terrain
+	
+	cursorOwner:Clone().Parent = cursorAttachment
 	
 	cursorAttachment:GetPropertyChangedSignal("CFrame"):Connect(function()
 		cursorPosition.Value = cursorAttachment.CFrame.Position
@@ -553,6 +568,8 @@ cursorButton.Click:Connect(function()
 	open = true
 	cursorButton:SetActive(open)
 end)
+
+
 
 plugin.Unloading:Connect(unload)
 plugin.Deactivation:Connect(unload)
